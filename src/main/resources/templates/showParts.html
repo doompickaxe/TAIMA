@@ -1,0 +1,44 @@
+<!DOCTYPE html >
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Log your Time</title>
+</head>
+<body>
+<h1>Hello dude</h1>
+<p>Enter Date: <input type="text" id="datepicker-wdt" value="2019-07-11"/></p>
+
+<h2 th:if="${not #lists.isEmpty(workParts)}"></h2>
+<span th:each="part : ${workParts}">
+    <div th:text="${part.start}"></div>
+    <div th:text="${part.end}"></div>
+    <br/>
+</span>
+</body>
+</html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>jQuery UI Datepicker | Webdevtrick.com</title>
+    <link href="https://fonts.googleapis.com/css?family=Squada+One&display=swap" rel="stylesheet">
+    <link href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+
+    <script>
+        $(function () {
+            $("#datepicker-wdt").datepicker({
+                showOtherMonths: true,
+                selectOtherMonths: true,
+                changeYear: true,
+                showButtonPanel: true,
+                dateFormat: "yy-mm-dd",
+                defaultDate: "2019-07-11"
+            });
+            $("#datepicker").datepicker("option", "dateFormat", "yy-mm-dd");
+        });
+    </script>
+</head>
+
+<body>
