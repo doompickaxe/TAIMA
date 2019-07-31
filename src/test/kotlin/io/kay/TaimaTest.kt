@@ -1,9 +1,8 @@
 package io.kay
 
 import io.kay.service.ConditionsRepository
+import io.kay.service.UserRepository
 import io.kay.web.mainWithDependencies
-import io.kay.web.module
-import io.ktor.application.Application
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.TestApplicationEngine
@@ -17,19 +16,20 @@ import kotlin.test.assertEquals
 
 class TaimaTest {
 
-    val repo = mockk<ConditionsRepository>()
+    val conditionsRepository = mockk<ConditionsRepository>()
+    val userRepository = mockk<UserRepository>()
 
     @Test
-    fun emptyConditionsListReturns404() = httpTest{
-        every {repo.findConditionsByUser(any())} returns listOf()
+    fun emptyConditionsListReturns404() = httpTest {
+        every { conditionsRepository.findConditionsByUser(any()) } returns listOf()
 
         with(handleRequest(HttpMethod.Get, "/rest/user/conditions")) {
             assertEquals(HttpStatusCode.NotFound, response.status())
         }
     }
 
-    private fun httpTest(callback: suspend TestApplicationEngine.() -> Unit): Unit {
-        withTestApplication({mainWithDependencies(repo)}) {
+    private fun httpTest(callback: suspend TestApplicationEngine.() -> Unit) {
+        withTestApplication({ mainWithDependencies(conditionsRepository, userRepository) }) {
             runBlocking { callback() }
         }
     }

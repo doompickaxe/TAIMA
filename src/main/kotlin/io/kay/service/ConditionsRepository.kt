@@ -31,8 +31,7 @@ class ConditionsRepository {
                 .leftJoin(Users)
                 .select { Users.email eq email }
                 .toConditions()
-                .find { it.from.isBefore(date).and(it.to.isAfter(date)) }
-
+                .find { it.from.isEqual(date).or(it.to.isEqual(date)).or(it.from.isBefore(date).and(it.to.isAfter(date))) }
         }
     }
 
