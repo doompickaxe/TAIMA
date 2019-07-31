@@ -4,17 +4,25 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.kay.config.Config
+import io.kay.model.toDTO
 import io.kay.service.ConditionsRepository
+import io.kay.service.UserRepository
+import io.kay.web.dto.UserDTO
 import io.ktor.application.Application
 import io.ktor.application.ApplicationCall
+import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.OAuthServerSettings
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.origin
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
 import io.ktor.request.host
 import io.ktor.request.port
+import io.ktor.request.receive
+import io.ktor.response.respond
+import io.ktor.routing.post
 import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.server.engine.ApplicationEngine
@@ -58,10 +66,10 @@ fun ApplicationCall.redirectUrl(path: String): String {
 }
 
 fun Application.module() {
-    mainWithDependencies(ConditionsRepository())
+    mainWithDependencies(ConditionsRepository(), UserRepository())
 }
 
-fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository) {
+fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository, userRepository: UserRepository) {
 //    install(Sessions) {
 //        cookie<MailSession>("sessionId") {
 //            val key = hex("abcd")
@@ -113,6 +121,23 @@ fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository)
 //        }
 
         route("/rest/user") {
+            post {
+                val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+
+                if (!userRepository.isAdmin(session.email)) {
+                    call.respond(HttpStatusCode.Forbidden)
+                    return@post
+                }
+
+                val body = call.receive(UserDTO::class)
+                val user = userRepository.createUser(body.email)
+
+                if (user == null)
+                    call.respond(HttpStatusCode.BadRequest, "User already exists.")
+                else
+                    call.respond(user.toDTO())
+            }
+
             conditions(conditionsRepository)
 
             route("/{day}") {
