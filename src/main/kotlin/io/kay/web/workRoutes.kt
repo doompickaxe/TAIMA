@@ -10,13 +10,15 @@ import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.routing.*
+import io.ktor.sessions.get
+import io.ktor.sessions.sessions
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
 import java.util.*
 
 fun Route.workday() {
     get {
-        val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+        val session = call.sessions.get<MailSession>()!!
         val day: LocalDate? = validateDay(call.parameters["day"]!!)
 
         if (day == null) {
@@ -38,7 +40,7 @@ fun Route.workday() {
     }
 
     get("/free") {
-        val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+        val session = call.sessions.get<MailSession>()!!
         val day: LocalDate? = validateDay(call.parameters["day"]!!)
 
         if (day == null) {
@@ -56,7 +58,7 @@ fun Route.workday() {
     }
 
     post("/work") {
-        val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+        val session = call.sessions.get<MailSession>()!!
         val requestDay = validateDay(call.parameters["day"]!!)
 
         if (requestDay == null) {
@@ -81,7 +83,7 @@ fun Route.workday() {
     }
 
     post("/free") {
-        val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+        val session = call.sessions.get<MailSession>()!!
         val requestDay = LocalDate.parse(call.parameters["day"], DateTimeFormat.forPattern("yyyy-MM-dd"))
         val dto = call.receive(FreePartDTO::class)
 
@@ -97,7 +99,7 @@ fun Route.workday() {
 
     route("/work/{id}") {
         put {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val workId = call.parameters["id"]!!
             val requestDay = validateDay(call.parameters["day"]!!)
             if (requestDay == null) {
@@ -128,7 +130,7 @@ fun Route.workday() {
         }
 
         delete {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val workId = call.parameters["id"]!!
             val requestDay = validateDay(call.parameters["day"]!!)
             if (requestDay == null) {
@@ -154,7 +156,7 @@ fun Route.workday() {
 
     route("/free/{id}") {
         put {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val freeId = call.parameters["id"]!!
             val requestDay = validateDay(call.parameters["day"]!!)
             if (requestDay == null) {
@@ -180,7 +182,7 @@ fun Route.workday() {
         }
 
         delete {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val freeId = call.parameters["id"]!!
             val requestDay = validateDay(call.parameters["day"]!!)
             if (requestDay == null) {
@@ -202,14 +204,5 @@ fun Route.workday() {
             else
                 call.respond(HttpStatusCode.NoContent)
         }
-    }
-}
-
-fun validateDay(day: String): LocalDate? {
-    return try {
-        LocalDate.parse(day, DateTimeFormat.forPattern("yyyy-MM-dd"))
-    }
-    catch (e: Exception) {
-        null
     }
 }

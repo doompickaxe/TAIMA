@@ -56,11 +56,11 @@ fun main() {
             consumedVacation = 3
         }
 
-//        FreePart.new {
-//            day = LocalDate(2019, 7, 12).toDateTimeAtStartOfDay()
-//            reason = FreeType.VACATION
-//            user = me
-//        }
+        FreePart.new {
+            day = LocalDate(2019, 7, 12).toDateTimeAtStartOfDay()
+            reason = FreeType.VACATION
+            user = me
+        }
 
         WorkPart.new {
             day = LocalDate(2019, 7, 26).toDateTimeAtStartOfDay()
@@ -72,6 +72,13 @@ fun main() {
         WorkPart.new {
             day = LocalDate(2019, 7, 26).toDateTimeAtStartOfDay()
             start = LocalTime(12, 0).toDateTimeToday()
+            user = me
+        }
+
+        WorkPart.new {
+            day = LocalDate(2019, 7, 25).toDateTimeAtStartOfDay()
+            start = LocalTime(12, 0).toDateTimeToday()
+            end = LocalTime(16, 0).toDateTimeToday()
             user = me
         }
 

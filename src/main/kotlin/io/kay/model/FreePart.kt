@@ -21,8 +21,8 @@ class FreePart(id: EntityID<UUID>) : UUIDEntity(id) {
     var reason by FreeParts.reason
 }
 
-fun FreePart.toFreePartDTO() =
-    FreePartDTO(
-        this.reason,
-        this.id.value
-    )
+fun FreePart.toFreePartDTO() = FreePartDTO(
+    this.reason,
+    this.day.toLocalDate(),
+    this.id.value
+)

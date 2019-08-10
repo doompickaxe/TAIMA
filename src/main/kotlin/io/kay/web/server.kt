@@ -6,15 +6,15 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.kay.config.Config
 import io.kay.model.toDTO
 import io.kay.service.ConditionsRepository
+import io.kay.service.LogRepository
 import io.kay.service.UserRepository
 import io.kay.web.dto.UserDTO
-import io.ktor.application.Application
-import io.ktor.application.ApplicationCall
-import io.ktor.application.call
-import io.ktor.application.install
+import io.kay.web.dto.WorkPartDTO
+import io.ktor.application.*
 import io.ktor.auth.OAuthServerSettings
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.origin
+import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
@@ -22,12 +22,15 @@ import io.ktor.request.host
 import io.ktor.request.port
 import io.ktor.request.receive
 import io.ktor.response.respond
+import io.ktor.response.respondText
+import io.ktor.routing.get
 import io.ktor.routing.post
 import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.sessions.*
 import io.ktor.thymeleaf.Thymeleaf
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import java.text.SimpleDateFormat
@@ -70,19 +73,9 @@ fun Application.module() {
 }
 
 fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository, userRepository: UserRepository) {
-//    install(Sessions) {
-//        cookie<MailSession>("sessionId") {
-//            val key = hex("abcd")
-//            transform(SessionTransportTransformerMessageAuthentication(key))
-//        }
-//    }
-//    install(Authentication) {
-//        oauth("google-oauth") {
-//            client = HttpClient(Apache)
-//            providerLookup = { googleOAuthProvider() }
-//            urlProvider = { redirectUrl("/login") }
-//        }
-//    }
+    install(Sessions) {
+        header<MailSession>("sessionId")
+    }
     install(ContentNegotiation) {
         jackson {
             registerModules(KotlinModule(), JodaModule())
@@ -99,30 +92,12 @@ fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository,
     }
 
     routing {
-        //        authenticate("google-oauth") {
-//            route("/login") {
-//                handle {
-//                    val principal = call.authentication.principal<OAuthAccessTokenResponse.OAuth2>()
-//                        ?: error("No principal")
-//
-//                    val json = HttpClient(Apache).get<String>("https://www.googleapis.com/userinfo/v2/me") {
-//                        header("Authorization", "Bearer ${principal.accessToken}")
-//                    }
-//
-//                    val data = ObjectMapper().readTree(json)
-//                    val id = data["id"].textValue()
-//
-//                    if (id != null) {
-//                        call.sessions.set(MailSession(data["email"].textValue()))
-//                    }
-//                    call.respondRedirect("/work")
-//                }
-//            }
-//        }
-
+        intercept(ApplicationCallPipeline.Features) {
+            call.sessions.set(MailSession("me@myself.test"));
+        }
         route("/rest/user") {
             post {
-                val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+                val session = call.sessions.get<MailSession>()!!
 
                 if (!userRepository.isAdmin(session.email)) {
                     call.respond(HttpStatusCode.Forbidden)
@@ -143,7 +118,64 @@ fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository,
             route("/{day}") {
                 workday()
             }
+
+            route("/report") {
+                get {
+                    val session = call.sessions.get<MailSession>()!!
+                    if (call.parameters["from"] == null || call.parameters["to"] == null) {
+                        call.respond(HttpStatusCode.BadRequest, "Please set the query parameters from and to.")
+                        return@get
+                    }
+                    val from = validateDay(call.parameters["from"]!!)
+                    val to = validateDay(call.parameters["to"]!!)
+                    if (from == null || to == null) {
+                        call.respond(HttpStatusCode.BadRequest, "Parameter were not in format: yyyy-MM-dd.")
+                        return@get
+                    }
+
+                    val workPartsInTimespan = LogRepository.getWorkPartsByDay(
+                        from.toDateTimeAtStartOfDay(),
+                        to.toDateTimeAtStartOfDay(),
+                        session.email
+                    )
+
+                    val workPartsGroupedByDay = workPartsInTimespan.groupBy { it.day }
+                    val firstPart = workPartsGroupedByDay.values.firstOrNull()?.size
+                    val maxWorkPartsPerDay = workPartsGroupedByDay.values.fold(firstPart) { highest, next ->
+                        if (next.size > highest!!)
+                            next.size
+                        else
+                            highest
+                    }
+
+                    var csv = workPartsGroupedByDay.values
+                        .map { normalizeLine(it, maxWorkPartsPerDay!!) }
+                        .fold("") { acc, dto -> "$acc$dto\n" }
+
+                    val freePartsInTimespan = LogRepository.getFreePartsByDay(
+                        from.toDateTimeAtStartOfDay(),
+                        to.toDateTimeAtStartOfDay(),
+                        session.email
+                    ).fold("") { acc, dto ->
+                        "$acc${dto.day};${"".padEnd((maxWorkPartsPerDay ?: 0) * 2, ';')};${dto.reason};\n"
+                    }
+
+                    csv += freePartsInTimespan
+
+                    call.respondText(csv, ContentType.Text.CSV)
+                }
+            }
         }
     }
 }
 
+fun normalizeLine(parts: List<WorkPartDTO>, paddingSize: Int): String {
+    var line = parts.fold("${parts.firstOrNull()?.day ?: ""};") { acc, part ->
+        "$acc${part.start};${part.end ?: ""};"
+    }
+
+    for (x in 1..(paddingSize - parts.size))
+        line += ";;"
+
+    return line
+}

@@ -9,18 +9,20 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.*
+import io.ktor.sessions.get
+import io.ktor.sessions.sessions
 import org.joda.time.LocalDate
 
 fun Route.conditions(conditionsRepository: ConditionsRepository) {
     route("/conditions") {
         get {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val conditions = conditionsRepository.findConditionsByUser(session.email)
             call.respond(conditions)
         }
 
         post {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val body = call.receive(UpsertConditionsDTO::class)
 
             if (body.to.isBefore(body.from)) {
@@ -37,7 +39,7 @@ fun Route.conditions(conditionsRepository: ConditionsRepository) {
         }
 
         get("/current") {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val condition = conditionsRepository.findConditionByDate(session.email, LocalDate.now())
             if (condition == null)
                 call.respond(HttpStatusCode.NotFound)
@@ -46,7 +48,7 @@ fun Route.conditions(conditionsRepository: ConditionsRepository) {
         }
 
         get("/{day}") {
-            val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+            val session = call.sessions.get<MailSession>()!!
             val day: LocalDate? = validateDay(call.parameters["day"]!!)
             if (day == null) {
                 call.respond(HttpStatusCode.BadRequest, "Day was not in format 'yyyy-MM-dd'")
@@ -62,7 +64,7 @@ fun Route.conditions(conditionsRepository: ConditionsRepository) {
 
         route("/{id}") {
             get {
-                val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+                val session = call.sessions.get<MailSession>()!!
                 val condition = conditionsRepository.findConditionById(call.parameters["id"]!!, session.email)
 
                 if (condition == null)
@@ -72,7 +74,7 @@ fun Route.conditions(conditionsRepository: ConditionsRepository) {
             }
 
             put {
-                val session = /*call.sessions.get<MailSession>()*/ MailSession("me@myself.test")
+                val session = call.sessions.get<MailSession>()!!
                 val dto = call.receive(UpsertConditionsDTO::class)
 
                 if (dto.to.isBefore(dto.from)) {

@@ -23,9 +23,9 @@ class WorkPart(id: EntityID<UUID>) : UUIDEntity(id) {
     var user by User referencedOn WorkParts.user
 }
 
-fun WorkPart.toWorkPartDTO() =
-    WorkPartDTO(
-        this.start.toLocalTime(),
-        this.end?.toLocalTime(),
-        this.id.value
-    )
+fun WorkPart.toWorkPartDTO() = WorkPartDTO(
+    this.start.toLocalTime(),
+    this.end?.toLocalTime(),
+    this.day.toLocalDate(),
+    this.id.value
+)

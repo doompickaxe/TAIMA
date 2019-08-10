@@ -12,13 +12,19 @@ import java.util.*
 
 class LogRepository {
     companion object {
-        fun getWorkPartsByDay(day: DateTime, email: String) =
-            transaction {
-                WorkParts
-                    .leftJoin(Users)
-                    .select { Users.email.eq(email) and WorkParts.day.eq(day) }
-                    .toWorkParts()
-            }
+        fun getWorkPartsByDay(day: DateTime, email: String) = transaction {
+            WorkParts
+                .leftJoin(Users)
+                .select { Users.email.eq(email) and WorkParts.day.eq(day) }
+                .toWorkPartsDTO()
+        }
+
+        fun getWorkPartsByDay(from: DateTime, to: DateTime, email: String) = transaction {
+            WorkParts
+                .leftJoin(Users)
+                .select { Users.email.eq(email) and WorkParts.day.greaterEq(from) and WorkParts.day.lessEq(to) }
+                .toWorkPartsDTO()
+        }
 
         fun logWork(email: String, requestDay: DateTime, body: WorkPartDTO): WorkPartDTO? {
             return transaction {
@@ -65,82 +71,91 @@ class LogRepository {
             }
         }
 
-        fun hasFreePartByDay(day: DateTime, email: String) =
-            transaction {
-                !FreeParts
-                    .leftJoin(Users)
-                    .select { Users.email.eq(email) and FreeParts.day.eq(day) }
-                    .empty()
-            }
+        fun hasFreePartByDay(day: DateTime, email: String) = transaction {
+            !FreeParts
+                .leftJoin(Users)
+                .select { Users.email.eq(email) and FreeParts.day.eq(day) }
+                .empty()
+        }
 
-        fun getFreePartsByDay(day: DateTime, email: String) =
-            transaction {
-                FreeParts
-                    .leftJoin(Users)
-                    .select { Users.email.eq(email) and FreeParts.day.eq(day) }
-                    .singleOrNull()
-                    ?.toFreePart()
-            }
+        fun getFreePartsByDay(day: DateTime, email: String) = transaction {
+            FreeParts
+                .leftJoin(Users)
+                .select { Users.email.eq(email) and FreeParts.day.eq(day) }
+                .singleOrNull()
+                ?.freePartDTO()
+        }
 
-        fun updateFreePart(id: UUID, email: String, requestDay: DateTime, body: FreePartDTO): FreePartDTO? {
-            return transaction {
-                val freePart = FreePart.findById(id)!!
+        fun getFreePartsByDay(from: DateTime, to: DateTime, email: String) = transaction {
+            FreeParts
+                .leftJoin(Users)
+                .select { Users.email.eq(email) and FreeParts.day.greaterEq(from) and FreeParts.day.lessEq(to) }
+                .toFreePartsDTO()
+        }
 
-                if (freePart.user.email != email || freePart.day != requestDay)
-                    return@transaction null
 
-                with(freePart) {
-                    reason = body.reason
-                    toFreePartDTO()
-                }
+        fun updateFreePart(id: UUID, email: String, requestDay: DateTime, body: FreePartDTO) = transaction {
+            val freePart = FreePart.findById(id)!!
+
+            if (freePart.user.email != email || freePart.day != requestDay)
+                return@transaction null
+
+            with(freePart) {
+                reason = body.reason
+                toFreePartDTO()
             }
         }
 
-        fun logFree(email: String, requestDay: DateTime, body: FreePartDTO): FreePartDTO? {
-            return transaction {
-                val hasWorkParts = WorkParts.leftJoin(Users)
-                    .select { Users.email.eq(email) and WorkParts.day.eq(requestDay) }
-                    .empty()
+        fun logFree(email: String, requestDay: DateTime, body: FreePartDTO) = transaction {
+            val hasWorkParts = WorkParts.leftJoin(Users)
+                .select { Users.email.eq(email) and WorkParts.day.eq(requestDay) }
+                .empty()
 
-                if (!hasWorkParts) {
-                    return@transaction null
-                }
-
-                FreePart.new {
-                    user = User.find { Users.email eq email }.first()
-                    day = requestDay
-                    reason = body.reason
-                }.toFreePartDTO()
+            if (!hasWorkParts) {
+                return@transaction null
             }
+
+            FreePart.new {
+                user = User.find { Users.email eq email }.first()
+                day = requestDay
+                reason = body.reason
+            }.toFreePartDTO()
         }
 
-        fun deleteFreePartById(id: UUID, email: String, requestDay: DateTime): Unit? {
-            return transaction {
-                val freePart = FreePart.findById(id) ?: return@transaction null
+        fun deleteFreePartById(id: UUID, email: String, requestDay: DateTime) = transaction {
+            val freePart = FreePart.findById(id) ?: return@transaction null
 
-                if (freePart.user.email != email || freePart.day != requestDay)
-                    return@transaction null
+            if (freePart.user.email != email || freePart.day != requestDay)
+                return@transaction null
 
-                freePart.delete()
-            }
+            freePart.delete()
         }
 
-        private fun ResultRow.toWorkPart() = WorkPartDTO(
+        private fun ResultRow.toWorkPartDTO() = WorkPartDTO(
             this[WorkParts.start].toLocalTime(),
             this[WorkParts.end]?.toLocalTime(),
+            this[WorkParts.day].toLocalDate(),
             this[WorkParts.id].value
         )
 
-        private fun Iterable<ResultRow>.toWorkParts(): List<WorkPartDTO> {
+        private fun Iterable<ResultRow>.toWorkPartsDTO(): List<WorkPartDTO> {
             return fold(mutableListOf<WorkPartDTO>()) { list, resultRow ->
-                list.add(resultRow.toWorkPart())
+                list.add(resultRow.toWorkPartDTO())
                 list
             }.toList()
         }
 
-        private fun ResultRow.toFreePart() = FreePartDTO(
+        private fun ResultRow.freePartDTO() = FreePartDTO(
             this[FreeParts.reason],
+            this[FreeParts.day].toLocalDate(),
             this[FreeParts.id].value
         )
+
+        private fun Iterable<ResultRow>.toFreePartsDTO(): List<FreePartDTO> {
+            return fold(mutableListOf<FreePartDTO>()) { list, resultRow ->
+                list.add(resultRow.freePartDTO())
+                list
+            }.toList()
+        }
     }
 }
