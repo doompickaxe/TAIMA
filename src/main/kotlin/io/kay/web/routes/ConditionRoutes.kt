@@ -1,9 +1,10 @@
-package io.kay.web
+package io.kay.web.routes
 
 import io.kay.model.toConditionsDTO
 import io.kay.service.ConditionsRepository
-import io.kay.web.dto.ConditionsDTO
+import io.kay.web.MailSession
 import io.kay.web.dto.UpsertConditionsDTO
+import io.kay.web.validateDay
 import io.ktor.application.call
 import io.ktor.http.HttpStatusCode
 import io.ktor.request.receive
