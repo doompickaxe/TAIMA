@@ -1,5 +1,6 @@
 package io.kay.web.routes
 
+import io.kay.service.ConditionsRepository
 import io.kay.service.LogRepository
 import io.kay.web.MailSession
 import io.kay.web.dto.WorkPartDTO
@@ -15,7 +16,7 @@ import io.ktor.sessions.get
 import io.ktor.sessions.sessions
 import org.joda.time.LocalDate
 
-fun Route.report() {
+fun Route.report(conditionsRepository: ConditionsRepository) {
     get {
         val session = call.sessions.get<MailSession>()!!
         if (call.parameters["from"] == null || call.parameters["to"] == null) {
@@ -29,12 +30,12 @@ fun Route.report() {
             return@get
         }
 
-        val csv = createCSV(from, to, session.email)
+        val csv = createCSV(conditionsRepository, from, to, session.email)
         call.respondText(csv, ContentType.Text.CSV)
     }
 }
 
-fun createCSV(from: LocalDate, to: LocalDate, email: String): String {
+fun createCSV(conditionsRepository: ConditionsRepository, from: LocalDate, to: LocalDate, email: String): String {
     val workPartsInTimespan = LogRepository.getWorkPartsByDay(
         from.toDateTimeAtStartOfDay(),
         to.toDateTimeAtStartOfDay(),
@@ -61,8 +62,8 @@ fun createCSV(from: LocalDate, to: LocalDate, email: String): String {
     ).fold("") { acc, dto ->
         "$acc${dto.day};${"".padEnd((maxWorkPartsPerDay ?: 0) * 2, ';')};${dto.reason};\n"
     }
-
     csv += freePartsInTimespan
+
     return csv
 }
 

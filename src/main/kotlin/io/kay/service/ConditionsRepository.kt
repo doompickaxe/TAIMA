@@ -1,13 +1,10 @@
 package io.kay.service
 
-import io.kay.model.Condition
-import io.kay.model.Conditions
-import io.kay.model.User
-import io.kay.model.Users
-import io.kay.model.toConditionsDTO
+import io.kay.model.*
 import io.kay.web.dto.ConditionsDTO
 import io.kay.web.dto.UpsertConditionsDTO
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.Interval
@@ -29,9 +26,26 @@ class ConditionsRepository {
         return transaction {
             Conditions
                 .leftJoin(Users)
-                .select { Users.email eq email }
+                .select {
+                    Users.email.eq(email) and
+                            Conditions.from.lessEq(date.toDateTimeAtStartOfDay()) and
+                            Conditions.to.greaterEq(date.toDateTimeAtStartOfDay())
+                }
                 .toConditions()
-                .find { it.from.isEqual(date).or(it.to.isEqual(date)).or(it.from.isBefore(date).and(it.to.isAfter(date))) }
+                .firstOrNull()
+        }
+    }
+
+    fun findConditionByDate(email: String, from: LocalDate, to: LocalDate): List<ConditionsDTO> {
+        return transaction {
+            Conditions
+                .leftJoin(Users)
+                .select {
+                    Users.email.eq(email) and
+                            Conditions.from.lessEq(to.toDateTimeAtStartOfDay()) and
+                            Conditions.to.greaterEq(from.toDateTimeAtStartOfDay())
+                }
+                .toConditions()
         }
     }
 

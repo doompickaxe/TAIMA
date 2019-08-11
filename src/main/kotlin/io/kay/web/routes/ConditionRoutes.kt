@@ -19,7 +19,10 @@ fun Route.conditions(conditionsRepository: ConditionsRepository) {
         get {
             val session = call.sessions.get<MailSession>()!!
             val conditions = conditionsRepository.findConditionsByUser(session.email)
-            call.respond(conditions)
+            if (conditions.isEmpty())
+                call.respond(HttpStatusCode.NotFound)
+            else
+                call.respond(conditions)
         }
 
         post {

@@ -119,7 +119,7 @@ fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository,
             }
 
             route("/report") {
-                report()
+                report(conditionsRepository)
             }
         }
     }
