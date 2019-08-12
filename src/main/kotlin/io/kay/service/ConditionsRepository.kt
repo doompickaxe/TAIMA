@@ -75,42 +75,38 @@ class ConditionsRepository {
         }
     }
 
-    fun findConditionById(id: String, email: String): ConditionsDTO? {
-        return transaction {
-            val condition = Condition.findById(UUID.fromString(id)) ?: return@transaction null
+    fun findConditionById(id: String, email: String) = transaction {
+        val condition = Condition.findById(UUID.fromString(id)) ?: return@transaction null
 
-            if (condition.user.email != email)
-                return@transaction null
+        if (condition.user.email != email)
+            return@transaction null
 
-            condition.toConditionsDTO()
-        }
+        condition.toConditionsDTO()
     }
 
-    fun updateCondition(id: String, email: String, body: UpsertConditionsDTO) =
-        transaction {
-            val condition = Condition.findById(UUID.fromString(id)) ?: return@transaction null
+    fun updateCondition(id: String, email: String, body: UpsertConditionsDTO) = transaction {
+        val condition = Condition.findById(UUID.fromString(id)) ?: return@transaction null
 
-            if (condition.user.email != email)
-                return@transaction null
+        if (condition.user.email != email)
+            return@transaction null
 
-            replaceCondition(body, condition)
-        }
+        replaceCondition(body, condition)
+    }
 
-    private fun replaceCondition(dto: UpsertConditionsDTO, condition: Condition): Condition =
-        with(condition) {
-            monday = dto.monday.toDateTimeToday()
-            tuesday = dto.tuesday.toDateTimeToday()
-            wednesday = dto.wednesday.toDateTimeToday()
-            thursday = dto.thursday.toDateTimeToday()
-            friday = dto.friday.toDateTimeToday()
-            saturday = dto.saturday.toDateTimeToday()
-            sunday = dto.sunday.toDateTimeToday()
-            from = dto.from.toDateTimeAtStartOfDay()
-            to = dto.to.toDateTimeAtStartOfDay()
-            initialVacation = dto.initialVacation
-            consumedVacation = dto.consumedVacation
-            this
-        }
+    private fun replaceCondition(dto: UpsertConditionsDTO, condition: Condition) = with(condition) {
+        monday = dto.monday.toDateTimeToday()
+        tuesday = dto.tuesday.toDateTimeToday()
+        wednesday = dto.wednesday.toDateTimeToday()
+        thursday = dto.thursday.toDateTimeToday()
+        friday = dto.friday.toDateTimeToday()
+        saturday = dto.saturday.toDateTimeToday()
+        sunday = dto.sunday.toDateTimeToday()
+        from = dto.from.toDateTimeAtStartOfDay()
+        to = dto.to.toDateTimeAtStartOfDay()
+        initialVacation = dto.initialVacation
+        consumedVacation = dto.consumedVacation
+        this
+    }
 
     private fun ResultRow.toCondition() = ConditionsDTO(
         this[Conditions.monday].toLocalTime(),
@@ -126,12 +122,10 @@ class ConditionsRepository {
         this[Conditions.id].value
     )
 
-    private fun Iterable<ResultRow>.toConditions(): List<ConditionsDTO> {
-        return fold(mutableListOf<ConditionsDTO>()) { list, resultRow ->
-            list.add(resultRow.toCondition())
-            list
-        }.toList()
-    }
+    private fun Iterable<ResultRow>.toConditions() = fold(mutableListOf<ConditionsDTO>()) { list, resultRow ->
+        list.add(resultRow.toCondition())
+        list
+    }.toList()
 
     private fun overlaps(a: ConditionsDTO, b: UpsertConditionsDTO): Boolean {
         return Interval(a.from.toDateTimeAtStartOfDay(), a.to.toDateTimeAtStartOfDay())
