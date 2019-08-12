@@ -2,6 +2,7 @@ package io.kay.web.routes
 
 import io.kay.service.LogRepository
 import io.kay.web.MailSession
+import io.kay.web.dto.CreateWorkPartDTO
 import io.kay.web.dto.FreePartDTO
 import io.kay.web.dto.WorkPartDTO
 import io.kay.web.validateDay
@@ -28,7 +29,7 @@ fun Route.workday() {
             return@get
         }
 
-        val workParts = LogRepository.getWorkPartsByDay(day.toDateTimeAtStartOfDay(), session.email)
+        val workParts = LogRepository.findWorkPartsByDay(day.toDateTimeAtStartOfDay(), session.email)
 
         if (workParts.isEmpty()) {
             val freePart = LogRepository.hasFreePartByDay(day.toDateTimeAtStartOfDay(), session.email)
@@ -50,7 +51,7 @@ fun Route.workday() {
             return@get
         }
 
-        val freePart = LogRepository.getFreePartsByDay(day.toDateTimeAtStartOfDay(), session.email)
+        val freePart = LogRepository.findFreePartsByDay(day.toDateTimeAtStartOfDay(), session.email)
 
         if (freePart == null) {
             call.respond(HttpStatusCode.NotFound)
@@ -68,7 +69,7 @@ fun Route.workday() {
             return@post
         }
 
-        val dto = call.receive(WorkPartDTO::class)
+        val dto = call.receive(CreateWorkPartDTO::class)
         if (dto.end != null && dto.end.isBefore(dto.start)) {
             call.respond(HttpStatusCode.BadRequest, "End cannot be before start.")
             return@post
@@ -89,7 +90,7 @@ fun Route.workday() {
         val requestDay = LocalDate.parse(call.parameters["day"], DateTimeFormat.forPattern("yyyy-MM-dd"))
         val dto = call.receive(FreePartDTO::class)
 
-        val response = LogRepository.logFree(session.email, requestDay.toDateTimeAtStartOfDay(), dto)
+        val response = LogRepository.logFreePart(session.email, requestDay.toDateTimeAtStartOfDay(), dto)
         if (response == null)
             call.respond(
                 HttpStatusCode.BadRequest,

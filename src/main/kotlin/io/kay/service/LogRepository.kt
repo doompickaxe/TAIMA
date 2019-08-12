@@ -1,6 +1,7 @@
 package io.kay.service
 
 import io.kay.model.*
+import io.kay.web.dto.CreateWorkPartDTO
 import io.kay.web.dto.FreePartDTO
 import io.kay.web.dto.WorkPartDTO
 import org.jetbrains.exposed.sql.ResultRow
@@ -12,21 +13,22 @@ import java.util.*
 
 class LogRepository {
     companion object {
-        fun getWorkPartsByDay(day: DateTime, email: String) = transaction {
+        fun findWorkPartsByDay(day: DateTime, email: String) = transaction {
             WorkParts
                 .leftJoin(Users)
                 .select { Users.email.eq(email) and WorkParts.day.eq(day) }
                 .toWorkPartsDTO()
         }
 
-        fun getWorkPartsByDay(from: DateTime, to: DateTime, email: String) = transaction {
+        fun findWorkPartsByDay(from: DateTime, to: DateTime, email: String) = transaction {
             WorkParts
                 .leftJoin(Users)
                 .select { Users.email.eq(email) and WorkParts.day.greaterEq(from) and WorkParts.day.lessEq(to) }
+                .orderBy(WorkParts.day)
                 .toWorkPartsDTO()
         }
 
-        fun logWork(email: String, requestDay: DateTime, body: WorkPartDTO): WorkPartDTO? {
+        fun logWork(email: String, requestDay: DateTime, body: CreateWorkPartDTO): WorkPartDTO? {
             return transaction {
                 val hasFreeParts = FreeParts.leftJoin(Users)
                     .select { Users.email.eq(email) and FreeParts.day.eq(requestDay) }
@@ -78,7 +80,7 @@ class LogRepository {
                 .empty()
         }
 
-        fun getFreePartsByDay(day: DateTime, email: String) = transaction {
+        fun findFreePartsByDay(day: DateTime, email: String) = transaction {
             FreeParts
                 .leftJoin(Users)
                 .select { Users.email.eq(email) and FreeParts.day.eq(day) }
@@ -86,10 +88,11 @@ class LogRepository {
                 ?.freePartDTO()
         }
 
-        fun getFreePartsByDay(from: DateTime, to: DateTime, email: String) = transaction {
+        fun findFreePartsByDay(from: DateTime, to: DateTime, email: String) = transaction {
             FreeParts
                 .leftJoin(Users)
                 .select { Users.email.eq(email) and FreeParts.day.greaterEq(from) and FreeParts.day.lessEq(to) }
+                .orderBy(FreeParts.day)
                 .toFreePartsDTO()
         }
 
@@ -106,7 +109,7 @@ class LogRepository {
             }
         }
 
-        fun logFree(email: String, requestDay: DateTime, body: FreePartDTO) = transaction {
+        fun logFreePart(email: String, requestDay: DateTime, body: FreePartDTO) = transaction {
             val hasWorkParts = WorkParts.leftJoin(Users)
                 .select { Users.email.eq(email) and WorkParts.day.eq(requestDay) }
                 .empty()

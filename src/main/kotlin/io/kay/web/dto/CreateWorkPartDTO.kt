@@ -5,9 +5,7 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import java.util.*
 
-data class WorkPartDTO(
+data class CreateWorkPartDTO(
     @JsonProperty("start") val start: LocalTime,
-    @JsonProperty("end") val end: LocalTime? = null,
-    @JsonProperty("day") val day: LocalDate,
-    @JsonProperty("id") val id: UUID
+    @JsonProperty("end") val end: LocalTime? = null
 )

@@ -45,6 +45,7 @@ class ConditionsRepository {
                             Conditions.from.lessEq(to.toDateTimeAtStartOfDay()) and
                             Conditions.to.greaterEq(from.toDateTimeAtStartOfDay())
                 }
+                .orderBy(Conditions.from)
                 .toConditions()
         }
     }
