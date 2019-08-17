@@ -19,7 +19,7 @@ import org.joda.time.DateTimeConstants
 import org.joda.time.Interval
 import org.joda.time.LocalDate
 
-fun Route.report(conditionsRepository: ConditionsRepository) {
+fun Route.report(conditionsRepository: ConditionsRepository, logRepository: LogRepository) {
     get {
         val session = call.sessions.get<MailSession>()!!
         if (call.parameters["from"] == null || call.parameters["to"] == null) {
@@ -33,18 +33,24 @@ fun Route.report(conditionsRepository: ConditionsRepository) {
             return@get
         }
 
-        val csv = createCSV(conditionsRepository, from, to, session.email)
+        val csv = createCSV(conditionsRepository, logRepository, from, to, session.email)
         call.respondText(csv, ContentType.Text.CSV)
     }
 }
 
-fun createCSV(conditionsRepository: ConditionsRepository, from: LocalDate, to: LocalDate, email: String): String {
-    val workPartsInTimespan = LogRepository.findWorkPartsByDay(
+fun createCSV(
+    conditionsRepository: ConditionsRepository,
+    logRepository: LogRepository,
+    from: LocalDate,
+    to: LocalDate,
+    email: String
+): String {
+    val workPartsInTimespan = logRepository.findWorkPartsByDay(
         from.toDateTimeAtStartOfDay(),
         to.toDateTimeAtStartOfDay(),
         email
     )
-    val freePartsInTimespan = LogRepository.findFreePartsByDay(
+    val freePartsInTimespan = logRepository.findFreePartsByDay(
         from.toDateTimeAtStartOfDay(),
         to.toDateTimeAtStartOfDay(),
         email

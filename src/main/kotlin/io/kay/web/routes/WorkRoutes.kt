@@ -19,7 +19,7 @@ import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
 import java.util.*
 
-fun Route.workday() {
+fun Route.workday(logRepository: LogRepository) {
     get {
         val session = call.sessions.get<MailSession>()!!
         val day: LocalDate? = validateDay(call.parameters["day"]!!)
@@ -29,10 +29,10 @@ fun Route.workday() {
             return@get
         }
 
-        val workParts = LogRepository.findWorkPartsByDay(day.toDateTimeAtStartOfDay(), session.email)
+        val workParts = logRepository.findWorkPartsByDay(day.toDateTimeAtStartOfDay(), session.email)
 
         if (workParts.isEmpty()) {
-            val freePart = LogRepository.hasFreePartByDay(day.toDateTimeAtStartOfDay(), session.email)
+            val freePart = logRepository.hasFreePartByDay(day.toDateTimeAtStartOfDay(), session.email)
             if (freePart) {
                 call.respondRedirect(call.request.uri + "/free")
                 return@get
@@ -51,7 +51,7 @@ fun Route.workday() {
             return@get
         }
 
-        val freePart = LogRepository.findFreePartsByDay(day.toDateTimeAtStartOfDay(), session.email)
+        val freePart = logRepository.findFreePartsByDay(day.toDateTimeAtStartOfDay(), session.email)
 
         if (freePart == null) {
             call.respond(HttpStatusCode.NotFound)
@@ -75,7 +75,7 @@ fun Route.workday() {
             return@post
         }
 
-        val response = LogRepository.logWork(session.email, requestDay.toDateTimeAtStartOfDay(), dto)
+        val response = logRepository.logWork(session.email, requestDay.toDateTimeAtStartOfDay(), dto)
         if (response == null)
             call.respond(
                 HttpStatusCode.BadRequest,
@@ -90,7 +90,7 @@ fun Route.workday() {
         val requestDay = LocalDate.parse(call.parameters["day"], DateTimeFormat.forPattern("yyyy-MM-dd"))
         val dto = call.receive(FreePartDTO::class)
 
-        val response = LogRepository.logFreePart(session.email, requestDay.toDateTimeAtStartOfDay(), dto)
+        val response = logRepository.logFreePart(session.email, requestDay.toDateTimeAtStartOfDay(), dto)
         if (response == null)
             call.respond(
                 HttpStatusCode.BadRequest,
@@ -116,7 +116,7 @@ fun Route.workday() {
                 return@put
             }
 
-            val response = LogRepository.updateWork(
+            val response = logRepository.updateWork(
                 UUID.fromString(workId),
                 session.email,
                 requestDay.toDateTimeAtStartOfDay(),
@@ -141,7 +141,7 @@ fun Route.workday() {
                 return@delete
             }
 
-            val response = LogRepository.deleteWorkById(
+            val response = logRepository.deleteWorkById(
                 UUID.fromString(workId),
                 session.email,
                 requestDay.toDateTimeAtStartOfDay()
@@ -168,7 +168,7 @@ fun Route.workday() {
             }
 
             val dto = call.receive(FreePartDTO::class)
-            val response = LogRepository.updateFreePart(
+            val response = logRepository.updateFreePart(
                 UUID.fromString(freeId),
                 session.email,
                 requestDay.toDateTimeAtStartOfDay(),
@@ -193,7 +193,7 @@ fun Route.workday() {
                 return@delete
             }
 
-            val response = LogRepository.deleteFreePartById(
+            val response = logRepository.deleteFreePartById(
                 UUID.fromString(freeId),
                 session.email,
                 requestDay.toDateTimeAtStartOfDay()

@@ -29,7 +29,7 @@ fun main() {
 
         Condition.new {
             user = me
-            from = LocalDate(2019, 5, 13).toDateTimeAtStartOfDay()
+            from = LocalDate(2019, 5, 12).toDateTimeAtStartOfDay()
             to = LocalDate(2019, 12, 31).toDateTimeAtStartOfDay()
             monday = LocalTime(5, 0).toDateTimeToday()
             tuesday = LocalTime(5, 0).toDateTimeToday()
@@ -57,39 +57,37 @@ fun main() {
         }
 
         FreePart.new {
-            day = LocalDate(2019, 7, 12).toDateTimeAtStartOfDay()
+            day = LocalDate(2019, 8, 12).toDateTimeAtStartOfDay()
             reason = FreeType.VACATION
             user = me
         }
 
         WorkPart.new {
-            day = LocalDate(2019, 7, 26).toDateTimeAtStartOfDay()
+            day = LocalDate(2019, 8, 15).toDateTimeAtStartOfDay()
             start = LocalTime(9, 0).toDateTimeToday()
             end = LocalTime(12, 0).toDateTimeToday()
             user = me
         }
 
         WorkPart.new {
-            day = LocalDate(2019, 7, 26).toDateTimeAtStartOfDay()
+            day = LocalDate(2019, 8, 15).toDateTimeAtStartOfDay()
             start = LocalTime(12, 0).toDateTimeToday()
             user = me
         }
 
         WorkPart.new {
-            day = LocalDate(2019, 7, 25).toDateTimeAtStartOfDay()
+            day = LocalDate(2019, 7, 14).toDateTimeAtStartOfDay()
             start = LocalTime(12, 0).toDateTimeToday()
             end = LocalTime(16, 0).toDateTimeToday()
             user = me
         }
 
         WorkPart.new {
-            day = LocalDate(2019, 7, 26).toDateTimeAtStartOfDay()
+            day = LocalDate(2019, 7, 14).toDateTimeAtStartOfDay()
             start = LocalTime(9, 0).toDateTimeToday()
             end = LocalTime(12, 0).toDateTimeToday()
             user = someoneElse
         }
-
-        commit()
     }
 
     Server.createServer().start(wait = true)

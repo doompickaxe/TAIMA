@@ -1,6 +1,7 @@
 package io.kay
 
 import io.kay.service.ConditionsRepository
+import io.kay.service.LogRepository
 import io.kay.service.UserRepository
 import io.kay.web.mainWithDependencies
 import io.ktor.http.HttpMethod
@@ -18,6 +19,7 @@ class TaimaTest {
 
     val conditionsRepository = mockk<ConditionsRepository>()
     val userRepository = mockk<UserRepository>()
+    val logRepository = mockk<LogRepository>()
 
     @Test
     fun emptyConditionsListReturns404() = httpTest {
@@ -29,7 +31,7 @@ class TaimaTest {
     }
 
     private fun httpTest(callback: suspend TestApplicationEngine.() -> Unit) {
-        withTestApplication({ mainWithDependencies(conditionsRepository, userRepository) }) {
+        withTestApplication({ mainWithDependencies(conditionsRepository, userRepository, logRepository) }) {
             runBlocking { callback() }
         }
     }

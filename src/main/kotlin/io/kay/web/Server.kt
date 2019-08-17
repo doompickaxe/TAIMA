@@ -3,34 +3,31 @@ package io.kay.web
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import io.kay.config.Config
 import io.kay.model.toDTO
 import io.kay.service.ConditionsRepository
 import io.kay.service.LogRepository
 import io.kay.service.UserRepository
 import io.kay.web.dto.UserDTO
-import io.kay.web.dto.WorkPartDTO
 import io.kay.web.routes.conditions
 import io.kay.web.routes.report
 import io.kay.web.routes.workday
-import io.ktor.application.*
-import io.ktor.auth.OAuthServerSettings
+import io.ktor.application.Application
+import io.ktor.application.ApplicationCallPipeline
+import io.ktor.application.call
+import io.ktor.application.install
 import io.ktor.features.ContentNegotiation
-import io.ktor.features.origin
-import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
-import io.ktor.request.host
-import io.ktor.request.port
 import io.ktor.request.receive
 import io.ktor.response.respond
-import io.ktor.routing.*
+import io.ktor.routing.post
+import io.ktor.routing.route
+import io.ktor.routing.routing
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.*
 import io.ktor.thymeleaf.Thymeleaf
-import org.joda.time.LocalDate
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import java.text.SimpleDateFormat
 
@@ -46,32 +43,15 @@ class Server {
     }
 }
 
-fun googleOAuthProvider(): OAuthServerSettings.OAuth2ServerSettings {
-    val config = Config.readAuthConfig()
-    return OAuthServerSettings.OAuth2ServerSettings(
-        name = "google",
-        authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
-        accessTokenUrl = "https://www.googleapis.com/oauth2/v3/token",
-        requestMethod = HttpMethod.Post,
-
-        clientId = "${config.clientId}.apps.googleusercontent.com",
-        clientSecret = config.clientSecret,
-        defaultScopes = listOf("email")
-    )
-}
-
-fun ApplicationCall.redirectUrl(path: String): String {
-    val defaultPort = if (request.origin.scheme == "http") 80 else 443
-    val hostPort = request.host() + request.port().let { port -> if (port == defaultPort) "" else ":$port" }
-    val protocol = request.origin.scheme
-    return "$protocol://$hostPort$path"
-}
-
 fun Application.module() {
-    mainWithDependencies(ConditionsRepository(), UserRepository())
+    mainWithDependencies(ConditionsRepository(), UserRepository(), LogRepository())
 }
 
-fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository, userRepository: UserRepository) {
+fun Application.mainWithDependencies(
+    conditionsRepository: ConditionsRepository,
+    userRepository: UserRepository,
+    logRepository: LogRepository
+) {
     install(Sessions) {
         header<MailSession>("sessionId")
     }
@@ -115,11 +95,11 @@ fun Application.mainWithDependencies(conditionsRepository: ConditionsRepository,
             conditions(conditionsRepository)
 
             route("/{day}") {
-                workday()
+                workday(logRepository)
             }
 
             route("/report") {
-                report(conditionsRepository)
+                report(conditionsRepository, logRepository)
             }
         }
     }
